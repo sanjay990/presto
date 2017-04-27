@@ -75,9 +75,11 @@ public class HdfsConfigurationUpdater
     private final File s3StagingDirectory;
     private final boolean pinS3ClientToCurrentRegion;
     private final String s3UserAgentPrefix;
+    private final String wasbAccessKey;
+    private final String wasbStorageAccount;
 
     @Inject
-    public HdfsConfigurationUpdater(HiveClientConfig hiveClientConfig, HiveS3Config s3Config)
+    public HdfsConfigurationUpdater(HiveClientConfig hiveClientConfig, HiveS3Config s3Config, HiveWasbConfig wasbConfig)
     {
         requireNonNull(hiveClientConfig, "hiveClientConfig is null");
         checkArgument(hiveClientConfig.getDfsTimeout().toMillis() >= 1, "dfsTimeout must be at least 1 ms");
@@ -93,6 +95,8 @@ public class HdfsConfigurationUpdater
         this.fileSystemMaxCacheSize = hiveClientConfig.getFileSystemMaxCacheSize();
 
         this.s3AwsAccessKey = s3Config.getS3AwsAccessKey();
+        this.wasbAccessKey = wasbConfig.getWasbAccessKey();
+        this.wasbStorageAccount = wasbConfig.getWasbStorageAccount();
         this.s3AwsSecretKey = s3Config.getS3AwsSecretKey();
         this.s3Endpoint = s3Config.getS3Endpoint();
         this.s3SignerType = s3Config.getS3SignerType();
@@ -208,6 +212,11 @@ public class HdfsConfigurationUpdater
         config.setLong(PrestoS3FileSystem.S3_MULTIPART_MIN_PART_SIZE, s3MultipartMinPartSize.toBytes());
         config.setBoolean(PrestoS3FileSystem.S3_PIN_CLIENT_TO_CURRENT_REGION, pinS3ClientToCurrentRegion);
         config.set(PrestoS3FileSystem.S3_USER_AGENT_PREFIX, s3UserAgentPrefix);
+
+        // set config for Azure Blob
+        if ((wasbAccessKey != null) && (wasbStorageAccount != null)) {
+            config.set("fs.azure.account.key." + wasbStorageAccount + ".blob.core.windows.net", wasbAccessKey);
+        }
     }
 
     public static void configureCompression(Configuration config, HiveCompressionCodec compressionCodec)
